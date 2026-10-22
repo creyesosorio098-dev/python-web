@@ -1,11 +1,59 @@
-{% extends "layout.html"%}
+{% extends "layout.html" %}
 
-{%block content%}
+{% block content %}
 <div class="p-5 mb-4 bg-body-tertiary rounded-3">
-  <div class="container-fluid py-5">
-    <h1 class="display-5 fw-bold">Título principal</h1>
-    <p class="col-md-8 fs-4">Texto de presentación de tu página.</p>
-    <button class="btn btn-primary btn-lg" type="button">Botón</button>
+  <div class="container-fluid py-3">
+    <h1 class="display-5 fw-bold">Fertilizantes para tu campo</h1>
+    <p class="col-md-8 fs-4">Elige el tipo de fertilizante que necesitas.</p>
+
+    <!-- Botones selectores -->
+    <div class="btn-group flex-wrap" role="group" aria-label="Filtrar productos">
+      <button type="button" class="btn btn-outline-success active" data-filtro="todos">Todos</button>
+      <button type="button" class="btn btn-outline-success" data-filtro="nitrogenado">Nitrogenados</button>
+      <button type="button" class="btn btn-outline-success" data-filtro="completo">Completos</button>
+      <button type="button" class="btn btn-outline-success" data-filtro="organico">Orgánicos</button>
+    </div>
   </div>
 </div>
-{%endblock%}
+
+<div class="alert alert-success">
+  Producto elegido: <strong id="seleccion">ninguno</strong>
+</div>
+
+<div class="row g-4">
+  {% for p in productos %}
+  <div class="col-md-4 producto" data-categoria="{{ p.categoria }}">
+    <div class="card h-100">
+      <div class="card-body">
+        <h5 class="card-title">{{ p.nombre }}</h5>
+        <p class="card-text text-body-secondary">Fórmula: {{ p.formula }}</p>
+        <p class="fw-bold">${{ p.precio }} MXN</p>
+        <button type="button" class="btn btn-success btn-elegir" data-nombre="{{ p.nombre }}">Elegir</button>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<script>
+  const botonesFiltro = document.querySelectorAll('[data-filtro]');
+  const tarjetas = document.querySelectorAll('.producto');
+
+  botonesFiltro.forEach(boton => {
+    boton.addEventListener('click', () => {
+      botonesFiltro.forEach(b => b.classList.remove('active'));
+      boton.classList.add('active');
+      const filtro = boton.dataset.filtro;
+      tarjetas.forEach(t => {
+        t.classList.toggle('d-none', filtro !== 'todos' && t.dataset.categoria !== filtro);
+      });
+    });
+  });
+
+  document.querySelectorAll('.btn-elegir').forEach(boton => {
+    boton.addEventListener('click', () => {
+      document.getElementById('seleccion').textContent = boton.dataset.nombre;
+    });
+  });
+</script>
+{% endblock %}
