@@ -16,19 +16,39 @@
   </div>
 </div>
 
-<div class="alert alert-success">
-  Producto elegido: <strong id="seleccion">ninguno</strong>
+<!-- Lista de compras pendientes -->
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <strong>Lista de compras pendientes</strong>
+    <button type="button" class="btn btn-sm btn-outline-danger" id="btn-vaciar">Vaciar lista</button>
+  </div>
+  <ul class="list-group list-group-flush" id="lista"></ul>
+  <div class="card-body" id="lista-vacia">
+    <span class="text-body-secondary">Aún no has agregado productos.</span>
+  </div>
+  <div class="card-footer d-flex justify-content-between">
+    <span>Total estimado</span>
+    <strong>$<span id="total">0</span> MXN</strong>
+  </div>
 </div>
 
 <div class="row g-4">
   {% for p in productos %}
   <div class="col-md-4 producto" data-categoria="{{ p.categoria }}">
     <div class="card h-100">
+      {% if p.imagen %}
+      <img src="{{ url_for('static', filename=p.imagen) }}"
+           class="card-img-top"
+           alt="{{ p.nombre }}">
+      {% endif %}
       <div class="card-body">
         <h5 class="card-title">{{ p.nombre }}</h5>
         <p class="card-text text-body-secondary">Fórmula: {{ p.formula }}</p>
         <p class="fw-bold">${{ p.precio }} MXN</p>
-        <button type="button" class="btn btn-success btn-elegir" data-nombre="{{ p.nombre }}">Elegir</button>
+        <button type="button" class="btn btn-success btn-agregar"
+                data-id="{{ p.id }}"
+                data-nombre="{{ p.nombre }}"
+                data-precio="{{ p.precio }}">Agregar a la lista</button>
       </div>
     </div>
   </div>
@@ -36,6 +56,7 @@
 </div>
 
 <script>
+  // ---------- Filtro por categoría ----------
   const botonesFiltro = document.querySelectorAll('[data-filtro]');
   const tarjetas = document.querySelectorAll('.producto');
 
@@ -50,10 +71,102 @@
     });
   });
 
-  document.querySelectorAll('.btn-elegir').forEach(boton => {
+  // ---------- Lista de compras ----------
+  const CLAVE = 'listaCompras';
+  let lista = [];
+
+  try {
+    lista = JSON.parse(localStorage.getItem(CLAVE)) || [];
+  } catch (e) {
+    lista = [];
+  }
+
+  function guardar() {
+    try {
+      localStorage.setItem(CLAVE, JSON.stringify(lista));
+    } catch (e) {}
+  }
+
+  function crearBoton(texto, clase, accion) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'btn btn-sm ' + clase;
+    b.textContent = texto;
+    b.addEventListener('click', accion);
+    return b;
+  }
+
+  function render() {
+    const ul = document.getElementById('lista');
+    ul.innerHTML = '';
+    let total = 0;
+
+    lista.forEach((item, i) => {
+      total += item.precio * item.cantidad;
+
+      const li = document.createElement('li');
+      li.className = 'list-group-item d-flex justify-content-between align-items-center';
+
+      const nombre = document.createElement('span');
+      nombre.textContent = item.nombre + ' ($' + item.precio + ')';
+
+      const controles = document.createElement('div');
+      controles.className = 'd-flex align-items-center gap-2';
+
+      const cantidad = document.createElement('strong');
+      cantidad.textContent = item.cantidad;
+
+      controles.append(
+        crearBoton('−', 'btn-outline-secondary', () => cambiar(i, -1)),
+        cantidad,
+        crearBoton('+', 'btn-outline-secondary', () => cambiar(i, 1)),
+        crearBoton('Quitar', 'btn-outline-danger', () => quitar(i))
+      );
+
+      li.append(nombre, controles);
+      ul.append(li);
+    });
+
+    document.getElementById('lista-vacia').classList.toggle('d-none', lista.length > 0);
+    document.getElementById('total').textContent = total.toLocaleString('es-MX');
+  }
+
+  function agregar(id, nombre, precio) {
+    const existente = lista.find(item => item.id === id);
+    if (existente) {
+      existente.cantidad += 1;
+    } else {
+      lista.push({ id: id, nombre: nombre, precio: precio, cantidad: 1 });
+    }
+    guardar();
+    render();
+  }
+
+  function cambiar(i, delta) {
+    lista[i].cantidad += delta;
+    if (lista[i].cantidad <= 0) lista.splice(i, 1);
+    guardar();
+    render();
+  }
+
+  function quitar(i) {
+    lista.splice(i, 1);
+    guardar();
+    render();
+  }
+
+  document.querySelectorAll('.btn-agregar').forEach(boton => {
     boton.addEventListener('click', () => {
-      document.getElementById('seleccion').textContent = boton.dataset.nombre;
+      agregar(boton.dataset.id, boton.dataset.nombre, Number(boton.dataset.precio));
     });
   });
+
+  document.getElementById('btn-vaciar').addEventListener('click', () => {
+    lista = [];
+    guardar();
+    render();
+  });
+
+  render();
 </script>
 {% endblock %}
